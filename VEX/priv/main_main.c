@@ -1696,6 +1696,9 @@ static const HChar* show_hwcaps_arm64 ( UInt hwcaps )
       and declare it invalid otherwise. */
   if (hwcaps == 0)
      return "baseline";
+  else if (hwcaps == (VEX_ARM64_IMPL_BROADCOM | VEX_ARM64_BRDCM_VULCAN)) {
+     return "broadcomm vulcan";
+  }
   return "Unsupported";
 }
 
@@ -2027,7 +2030,7 @@ static void check_hwcaps ( VexArch arch, UInt hwcaps )
       }
 
       case VexArchARM64:
-         if (hwcaps != 0)
+         if (hwcaps != 0 && hwcaps != (VEX_ARM64_IMPL_BROADCOM | VEX_ARM64_BRDCM_VULCAN))
             invalid_hwcaps(arch, hwcaps,
                            "Unsupported hardware capabilities.\n");
          return;

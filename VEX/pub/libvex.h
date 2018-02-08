@@ -190,7 +190,14 @@ typedef
 #define VEX_ARM_ARCHLEVEL(x) ((x) & 0x3f)
 
 /* ARM64: baseline capability is AArch64 v8. */
-/* (no definitions since no variants so far) */
+/* reserve 3:0 for architecture revisions */
+/* use 11:3 for implementer, currently reaches as highly as 0x52 */
+#define VEX_ARM64_IMPL_BROADCOM (0x42 << 4) /* 0x42 cpu implementer */
+/* 23:17 for part number */
+#define VEX_ARM64_BRDCM_VULCAN (0x516 << 12)
+
+#define VEX_ARM64_IMPL(x) ((x) & 0xff0)
+#define VEX_ARM64_PART(x) ((x) & 0xfff000)
 
 /* MIPS baseline capability */
 /* Assigned Company values for bits 23:16 of the PRId Register

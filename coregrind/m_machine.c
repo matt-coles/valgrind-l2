@@ -786,6 +786,8 @@ static Bool VG_(parse_cpuinfo)(void)
 static Bool VG_(parse_cpuinfo)(void)
 {
    const char *search_Cavium_str = "CPU implementer\t: 0x43";
+   const char *search_Broadcom_str = "CPU implementer\t: 0x42";
+   const char *search_Vulcan_str = "CPU part\t: 0x516";
 
    Int    n, fh;
    SysRes fd;
@@ -829,6 +831,12 @@ static Bool VG_(parse_cpuinfo)(void)
    /* Parse file */
    if (VG_(strstr)(file_buf, search_Cavium_str) != NULL)
       vai.arm64_requires_fallback_LLSC = True;
+   
+   if (VG_(strstr)(file_buf, search_Broadcom_str) != NULL)
+      vai.hwcaps |= VEX_ARM64_IMPL_BROADCOM;
+
+   if (VG_(strstr)(file_buf, search_Vulcan_str) != NULL)
+      vai.hwcaps |= VEX_ARM64_BRDCM_VULCAN;
 
    VG_(free)(file_buf);
    return True;

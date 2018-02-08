@@ -166,29 +166,34 @@ Bool cachesim_ref_is_miss(cache_t2* c, Addr a, UChar size)
 static cache_t2 LL;
 static cache_t2 I1;
 static cache_t2 D1;
+static cache_t2 L2;
 
-static void cachesim_initcaches(cache_t I1c, cache_t D1c, cache_t LLc)
+static void cachesim_initcaches(cache_t I1c, cache_t D1c, cache_t L2c, cache_t LLc)
 {
    cachesim_initcache(I1c, &I1);
    cachesim_initcache(D1c, &D1);
+   cachesim_initcache(L2c, &L2);
    cachesim_initcache(LLc, &LL);
 }
 
 __attribute__((always_inline))
 static __inline__
-void cachesim_I1_doref_Gen(Addr a, UChar size, ULong* m1, ULong *mL)
+void cachesim_I1_doref_Gen(Addr a, UChar size, ULong* m1, ULong* m2, ULong *mL)
 {
    if (cachesim_ref_is_miss(&I1, a, size)) {
       (*m1)++;
-      if (cachesim_ref_is_miss(&LL, a, size))
-         (*mL)++;
+      if (cachesim_ref_is_miss(&L2, a, size)) {
+        (*m2)++;
+        if (cachesim_ref_is_miss(&LL, a, size))
+          (*mL)++;
+      }
    }
 }
 
 // common special case IrNoX
 __attribute__((always_inline))
 static __inline__
-void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL)
+void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong* m2, ULong *mL)
 {
    UWord block  = a >> I1.line_size_bits;
    UInt  I1_set = block & I1.sets_min_1;
@@ -196,21 +201,28 @@ void cachesim_I1_doref_NoX(Addr a, UChar size, ULong* m1, ULong *mL)
    // use block as tag
    if (cachesim_setref_is_miss(&I1, I1_set, block)) {
       UInt  LL_set = block & LL.sets_min_1;
+      UInt  L2_set = block & L2.sets_min_1;
       (*m1)++;
-      // can use block as tag as L1I and LL cache line sizes are equal
-      if (cachesim_setref_is_miss(&LL, LL_set, block))
-         (*mL)++;
+      if (cachesim_setref_is_miss(&L2, L2_set, block)) {
+        (*m2)++;
+        // can use block as tag as L1I and LL cache line sizes are equal
+        if (cachesim_setref_is_miss(&LL, LL_set, block))
+          (*mL)++;
+      }
    }
 }
 
 __attribute__((always_inline))
 static __inline__
-void cachesim_D1_doref(Addr a, UChar size, ULong* m1, ULong *mL)
+void cachesim_D1_doref(Addr a, UChar size, ULong* m1, ULong* m2, ULong *mL)
 {
    if (cachesim_ref_is_miss(&D1, a, size)) {
       (*m1)++;
-      if (cachesim_ref_is_miss(&LL, a, size))
-         (*mL)++;
+      if (cachesim_ref_is_miss(&L2, a, size)) {
+        (*m2)++;
+        if (cachesim_ref_is_miss(&LL, a, size))
+          (*mL)++;
+      }
    }
 }
 

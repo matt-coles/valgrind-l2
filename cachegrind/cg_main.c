@@ -77,7 +77,8 @@ typedef
    struct {
       ULong a;  /* total # memory accesses of this kind */
       ULong m1; /* misses in the first level cache */
-      ULong mL; /* misses in the second level cache */
+      ULong m2; /* misses in the second level of cache */
+      ULong mL; /* misses in the last level cache */
    }
    CacheCC;
 
@@ -269,12 +270,15 @@ static LineCC* get_lineCC(Addr origAddr)
       lineCC->loc.line = loc.line;
       lineCC->Ir.a     = 0;
       lineCC->Ir.m1    = 0;
+      lineCC->Ir.m2    = 0;
       lineCC->Ir.mL    = 0;
       lineCC->Dr.a     = 0;
       lineCC->Dr.m1    = 0;
+      lineCC->Dr.m2    = 0;
       lineCC->Dr.mL    = 0;
       lineCC->Dw.a     = 0;
       lineCC->Dw.m1    = 0;
+      lineCC->Dw.m2    = 0;
       lineCC->Dw.mL    = 0;
       lineCC->Bc.b     = 0;
       lineCC->Bc.mp    = 0;
@@ -334,7 +338,7 @@ void log_1IrGen_0D_cache_access(InstrInfo* n)
    //VG_(printf)("1IrGen_0D :  CCaddr=0x%010lx,  iaddr=0x%010lx,  isize=%lu\n",
    //             n, n->instr_addr, n->instr_len);
    cachesim_I1_doref_Gen(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+			 &n->parent->Ir.m1, &n->parent->Ir.m2, &n->parent->Ir.mL);
    n->parent->Ir.a++;
 }
 
@@ -344,7 +348,7 @@ void log_1IrNoX_0D_cache_access(InstrInfo* n)
    //VG_(printf)("1IrNoX_0D :  CCaddr=0x%010lx,  iaddr=0x%010lx,  isize=%lu\n",
    //             n, n->instr_addr, n->instr_len);
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+			 &n->parent->Ir.m1, &n->parent->Ir.m2, &n->parent->Ir.mL);
    n->parent->Ir.a++;
 }
 
@@ -356,10 +360,10 @@ void log_2IrNoX_0D_cache_access(InstrInfo* n, InstrInfo* n2)
    //            n,  n->instr_addr,  n->instr_len,
    //            n2, n2->instr_addr, n2->instr_len);
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+			 &n->parent->Ir.m1, &n->parent->Ir.m2, &n->parent->Ir.mL);
    n->parent->Ir.a++;
    cachesim_I1_doref_NoX(n2->instr_addr, n2->instr_len,
-			 &n2->parent->Ir.m1, &n2->parent->Ir.mL);
+			 &n2->parent->Ir.m1, &n2->parent->Ir.m2, &n2->parent->Ir.mL);
    n2->parent->Ir.a++;
 }
 
@@ -373,13 +377,13 @@ void log_3IrNoX_0D_cache_access(InstrInfo* n, InstrInfo* n2, InstrInfo* n3)
    //            n2, n2->instr_addr, n2->instr_len,
    //            n3, n3->instr_addr, n3->instr_len);
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+			 &n->parent->Ir.m1, &n->parent->Ir.m2, &n->parent->Ir.mL);
    n->parent->Ir.a++;
    cachesim_I1_doref_NoX(n2->instr_addr, n2->instr_len,
-			 &n2->parent->Ir.m1, &n2->parent->Ir.mL);
+			 &n2->parent->Ir.m1, &n2->parent->Ir.m2, &n2->parent->Ir.mL);
    n2->parent->Ir.a++;
    cachesim_I1_doref_NoX(n3->instr_addr, n3->instr_len,
-			 &n3->parent->Ir.m1, &n3->parent->Ir.mL);
+			 &n3->parent->Ir.m1, &n3->parent->Ir.m2, &n3->parent->Ir.mL);
    n3->parent->Ir.a++;
 }
 
@@ -390,11 +394,11 @@ void log_1IrNoX_1Dr_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    //            "                               daddr=0x%010lx,  dsize=%lu\n",
    //            n, n->instr_addr, n->instr_len, data_addr, data_size);
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+			 &n->parent->Ir.m1, &n->parent->Ir.m2, &n->parent->Ir.mL);
    n->parent->Ir.a++;
 
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dr.m1, &n->parent->Dr.mL);
+                     &n->parent->Dr.m1, &n->parent->Dr.m2, &n->parent->Dr.mL);
    n->parent->Dr.a++;
 }
 
@@ -405,11 +409,11 @@ void log_1IrNoX_1Dw_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    //            "                               daddr=0x%010lx,  dsize=%lu\n",
    //            n, n->instr_addr, n->instr_len, data_addr, data_size);
    cachesim_I1_doref_NoX(n->instr_addr, n->instr_len,
-			 &n->parent->Ir.m1, &n->parent->Ir.mL);
+			 &n->parent->Ir.m1, &n->parent->Ir.m2, &n->parent->Ir.mL);
    n->parent->Ir.a++;
 
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dw.m1, &n->parent->Dw.mL);
+                     &n->parent->Dw.m1, &n->parent->Dw.m2, &n->parent->Dw.mL);
    n->parent->Dw.a++;
 }
 
@@ -422,7 +426,7 @@ void log_0Ir_1Dr_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    //VG_(printf)("0Ir_1Dr:  CCaddr=0x%010lx,  daddr=0x%010lx,  dsize=%lu\n",
    //            n, data_addr, data_size);
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dr.m1, &n->parent->Dr.mL);
+                     &n->parent->Dr.m1, &n->parent->Dr.m2, &n->parent->Dr.mL);
    n->parent->Dr.a++;
 }
 
@@ -433,7 +437,7 @@ void log_0Ir_1Dw_cache_access(InstrInfo* n, Addr data_addr, Word data_size)
    //VG_(printf)("0Ir_1Dw:  CCaddr=0x%010lx,  daddr=0x%010lx,  dsize=%lu\n",
    //            n, data_addr, data_size);
    cachesim_D1_doref(data_addr, data_size, 
-                     &n->parent->Dw.m1, &n->parent->Dw.mL);
+                     &n->parent->Dw.m1, &n->parent->Dw.m2, &n->parent->Dw.mL);
    n->parent->Dw.a++;
 }
 
@@ -1495,13 +1499,19 @@ static void fprint_CC_table_and_calc_totals(void)
       // Update summary stats
       Ir_total.a  += lineCC->Ir.a;
       Ir_total.m1 += lineCC->Ir.m1;
+      Ir_total.m2 += lineCC->Ir.m2;
       Ir_total.mL += lineCC->Ir.mL;
+
       Dr_total.a  += lineCC->Dr.a;
       Dr_total.m1 += lineCC->Dr.m1;
+      Dr_total.m2 += lineCC->Dr.m2;
       Dr_total.mL += lineCC->Dr.mL;
+
       Dw_total.a  += lineCC->Dw.a;
       Dw_total.m1 += lineCC->Dw.m1;
+      Dw_total.m2 += lineCC->Dw.m2;
       Dw_total.mL += lineCC->Dw.mL;
+
       Bc_total.b  += lineCC->Bc.b;
       Bc_total.mp += lineCC->Bc.mp;
       Bi_total.b  += lineCC->Bi.b;
@@ -1569,6 +1579,8 @@ static void cg_fini(Int exitcode)
    BranchCC B_total;
    ULong LL_total_m, LL_total_mr, LL_total_mw,
          LL_total, LL_total_r, LL_total_w;
+   ULong L2_total_m, L2_total_mr, L2_total_mw,
+         L2_total, L2_total_r, L2_total_w;
    Int l1, l2, l3;
 
    fprint_CC_table_and_calc_totals();
@@ -1595,11 +1607,14 @@ static void cg_fini(Int exitcode)
       miss numbers */
    if (clo_cache_sim) {
       VG_(umsg)(fmt, "I1  misses:   ", Ir_total.m1);
+      VG_(umsg)(fmt, "L2i misses:   ", Ir_total.m2);
       VG_(umsg)(fmt, "LLi misses:   ", Ir_total.mL);
 
       if (0 == Ir_total.a) Ir_total.a = 1;
       VG_(umsg)("I1  miss rate: %*.2f%%\n", l1,
                 Ir_total.m1 * 100.0 / Ir_total.a);
+      VG_(umsg)("L2i miss rate: %*.2f%%\n", l1,
+                Ir_total.m2 * 100.0 / Ir_total.a);
       VG_(umsg)("LLi miss rate: %*.2f%%\n", l1,
                 Ir_total.mL * 100.0 / Ir_total.a);
       VG_(umsg)("\n");
@@ -1608,6 +1623,7 @@ static void cg_fini(Int exitcode)
        * determine the width of columns 2 & 3. */
       D_total.a  = Dr_total.a  + Dw_total.a;
       D_total.m1 = Dr_total.m1 + Dw_total.m1;
+      D_total.m2 = Dr_total.m2 + Dw_total.m2;
       D_total.mL = Dr_total.mL + Dw_total.mL;
 
       /* Make format string, getting width right for numbers */
@@ -1618,6 +1634,8 @@ static void cg_fini(Int exitcode)
                      D_total.a, Dr_total.a, Dw_total.a);
       VG_(umsg)(fmt, "D1  misses:   ",
                      D_total.m1, Dr_total.m1, Dw_total.m1);
+      VG_(umsg)(fmt, "L2d  misses:   ",
+                     D_total.m2, Dr_total.m2, Dw_total.m2);
       VG_(umsg)(fmt, "LLd misses:   ",
                      D_total.mL, Dr_total.mL, Dw_total.mL);
 
@@ -1628,17 +1646,40 @@ static void cg_fini(Int exitcode)
                 l1, D_total.m1  * 100.0 / D_total.a,
                 l2, Dr_total.m1 * 100.0 / Dr_total.a,
                 l3, Dw_total.m1 * 100.0 / Dw_total.a);
+      VG_(umsg)("L2d  miss rate: %*.1f%% (%*.1f%%     + %*.1f%%  )\n",
+                l1, D_total.m2  * 100.0 / D_total.a,
+                l2, Dr_total.m2 * 100.0 / Dr_total.a,
+                l3, Dw_total.m2 * 100.0 / Dw_total.a);
       VG_(umsg)("LLd miss rate: %*.1f%% (%*.1f%%     + %*.1f%%  )\n",
                 l1, D_total.mL  * 100.0 / D_total.a,
                 l2, Dr_total.mL * 100.0 / Dr_total.a,
                 l3, Dw_total.mL * 100.0 / Dw_total.a);
       VG_(umsg)("\n");
 
+
+      L2_total   = Dr_total.m1 + Dw_total.m1 + Ir_total.m1;
+      L2_total_r = Dr_total.m1 + Ir_total.m1;
+      L2_total_w = Dw_total.m1;
+      VG_(umsg)(fmt, "L2 refs:      ",
+                     L2_total, L2_total_r, L2_total_w);
+
+      L2_total_m  = Dr_total.m2 + Dw_total.m2 + Ir_total.m2;
+      L2_total_mr = Dr_total.m2 + Ir_total.m2;
+      L2_total_mw = Dw_total.m2;
+      VG_(umsg)(fmt, "L2 misses:    ",
+                     L2_total_m, L2_total_mr, L2_total_mw);
+
+      VG_(umsg)("L2 miss rate:  %*.1f%% (%*.1f%%     + %*.1f%%  )\n",
+                l1, L2_total_m  * 100.0 / (Ir_total.a + D_total.a),
+                l2, L2_total_mr * 100.0 / (Ir_total.a + Dr_total.a),
+                l3, L2_total_mw * 100.0 / Dw_total.a);
+      VG_(umsg)("\n");
+
       /* LL overall results */
 
-      LL_total   = Dr_total.m1 + Dw_total.m1 + Ir_total.m1;
-      LL_total_r = Dr_total.m1 + Ir_total.m1;
-      LL_total_w = Dw_total.m1;
+      LL_total   = Dr_total.m2 + Dw_total.m2 + Ir_total.m2;
+      LL_total_r = Dr_total.m2 + Ir_total.m2;
+      LL_total_w = Dw_total.m2;
       VG_(umsg)(fmt, "LL refs:      ",
                      LL_total, LL_total_r, LL_total_w);
 
@@ -1805,7 +1846,7 @@ static void cg_pre_clo_init(void)
 
 static void cg_post_clo_init(void)
 {
-   cache_t I1c, D1c, LLc; 
+   cache_t I1c, D1c, L2c, LLc; 
 
    CC_table =
       VG_(OSetGen_Create)(offsetof(LineCC, loc),
@@ -1823,7 +1864,7 @@ static void cg_post_clo_init(void)
                           VG_(malloc), "cg.main.cpci.3",
                           VG_(free));
 
-   VG_(post_clo_init_configure_caches)(&I1c, &D1c, &LLc,
+   VG_(post_clo_init_configure_caches)(&I1c, &D1c, &L2c, &LLc,
                                        &clo_I1_cache,
                                        &clo_D1_cache,
                                        &clo_LL_cache);
@@ -1848,7 +1889,7 @@ static void cg_post_clo_init(void)
       VG_(exit)(1);
    }
 
-   cachesim_initcaches(I1c, D1c, LLc);
+   cachesim_initcaches(I1c, D1c, L2c, LLc);
 }
 
 VG_DETERMINE_INTERFACE_VERSION(cg_pre_clo_init)

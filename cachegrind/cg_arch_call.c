@@ -34,9 +34,9 @@
 #include "pub_tool_options.h"
 #include "pub_tool_machine.h"
 
-#include "cg_arch.h"
+#include "cg_arch_call.h"
 
-static void configure_caches(cache_t* I1c, cache_t* D1c, cache_t* L2c, cache_t* LLc,
+static void configure_caches(cache_t* I1c, cache_t* D1c, cache_t* LLc,
                              Bool all_caches_clo_defined);
 
 // Checks cache config is ok.  Returns NULL if ok, or a pointer to an error
@@ -272,7 +272,6 @@ maybe_tweak_LLc(cache_t *LLc)
 
 void VG_(post_clo_init_configure_caches)(cache_t* I1c,
                                          cache_t* D1c,
-                                         cache_t* L2c,
                                          cache_t* LLc,
                                          cache_t* clo_I1c,
                                          cache_t* clo_D1c,
@@ -288,7 +287,7 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
 
    // Set the cache config (using auto-detection, if supported by the
    // architecture).
-   configure_caches( I1c, D1c, L2c, LLc, all_caches_clo_defined );
+   configure_caches( I1c, D1c, LLc, all_caches_clo_defined );
 
    maybe_tweak_LLc( LLc );
 
@@ -309,7 +308,6 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
       VG_(umsg)("Cache configuration used:\n");
       umsg_cache_img ("I1", I1c);
       umsg_cache_img ("D1", D1c);
-      umsg_cache_img ("L2", L2c);
       umsg_cache_img ("LL", LLc);
    }
 #undef DEFINED
@@ -344,12 +342,12 @@ locate_cache(const VexCacheInfo *ci, VexCacheKind kind, UInt level)
 // Gives the auto-detected configuration of I1, D1 and LL caches.  They get
 // overridden by any cache configurations specified on the command line.
 static void
-configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
+configure_caches(cache_t *I1c, cache_t *D1c, cache_t *LLc,
                  Bool all_caches_clo_defined)
 {
    VexArchInfo vai;
    const VexCacheInfo *ci;
-   const VexCache *i1, *d1, *l2, *ll;
+   const VexCache *i1, *d1, *ll;
 
    VG_(machine_get_VexArchInfo)(NULL, &vai);
    ci = &vai.hwcache_info;
@@ -357,11 +355,10 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
    // Extract what we need
    i1 = locate_cache(ci, INSN_CACHE, 1);
    d1 = locate_cache(ci, DATA_CACHE, 1);
-   l2 = locate_cache(ci, UNIFIED_CACHE, 2);
    ll = locate_cache(ci, UNIFIED_CACHE, ci->num_levels);
 
-   if (ci->num_caches > 0 && l2 == NULL) {
-      VG_(dmsg)("warning: L2 cache not installed, ignore L2 results.\n");
+   if (ci->num_caches > 0 && ll == NULL) {
+      VG_(dmsg)("warning: L2 cache not installed, ignore LL results.\n");
    }
 
    if (ll && ci->num_levels > 2) {
@@ -369,7 +366,7 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
                 "LL simulation.\n", ci->num_levels);
    }
 
-   if (i1 && d1 && l2 && ll) {
+   if (i1 && d1 && ll) {
       if (i1->is_trace_cache) {
          /* HACK ALERT: Instruction trace cache -- capacity is micro-ops based.
           * conversion to byte size is a total guess;  treat the 12K and 16K
@@ -393,7 +390,6 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
          *I1c = (cache_t) { i1->sizeB, i1->assoc, i1->line_sizeB };
       }
       *D1c = (cache_t) { d1->sizeB, d1->assoc, d1->line_sizeB };
-      *L2c = (cache_t) { l2->sizeB, l2->assoc, l2->line_sizeB };
       *LLc = (cache_t) { ll->sizeB, ll->assoc, ll->line_sizeB };
 
       return;
@@ -427,19 +423,9 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
 
    // Copy the 32-bit ARM version until such time as we have
    // some real hardware to run on
-
-   // FIXME: this is the config for Isambard not public
-   if (VEX_ARM64_IMPL(vai.hwcaps) == VEX_ARM64_IMPL_BROADCOM 
-       && VEX_ARM64_PART(vai.hwcaps) == VEX_ARM64_BRDCM_VULCAN) {
-       *I1c = (cache_t) {    32768, 8, 64 };
-       *D1c = (cache_t) {    32768, 8, 64 };
-       *L2c = (cache_t) {   262144, 8, 64 };
-       *LLc = (cache_t) { 33554432, 8, 64 };
-   } else {
-       *I1c = (cache_t) {  16384, 4, 64 };
-       *D1c = (cache_t) {  16384, 4, 64 };
-       *LLc = (cache_t) { 262144, 8, 64 };
-   }
+   *I1c = (cache_t) {  16384, 4, 64 };
+   *D1c = (cache_t) {  16384, 4, 64 };
+   *LLc = (cache_t) { 262144, 8, 64 };
 
 #elif defined(VGA_s390x)
    //
