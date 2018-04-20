@@ -431,14 +431,14 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
    // FIXME: this is the config for Isambard not public
    if (VEX_ARM64_IMPL(vai.hwcaps) == VEX_ARM64_IMPL_BROADCOM 
        && VEX_ARM64_PART(vai.hwcaps) == VEX_ARM64_BRDCM_VULCAN) {
-       *I1c = (cache_t) {    32768, 8, 64 };
-       *D1c = (cache_t) {    32768, 8, 64 };
-       *L2c = (cache_t) {   262144, 8, 64 };
-       *LLc = (cache_t) { 33554432, 8, 64 };
+       *I1c = (cache_t) {    32768, 8, 1 << vai.arm64_iMinLine_lg2_szB };
+       *D1c = (cache_t) {    32768, 8, 1 << vai.arm64_dMinLine_lg2_szB };
+       *L2c = (cache_t) {   262144, 8, 1 << vai.arm64_dMinLine_lg2_szB };
+       *LLc = (cache_t) { 33554432, 8, 1 << vai.arm64_dMinLine_lg2_szB };
    } else {
-       *I1c = (cache_t) {  16384, 4, 64 };
-       *D1c = (cache_t) {  16384, 4, 64 };
-       *LLc = (cache_t) { 262144, 8, 64 };
+       *I1c = (cache_t) {  16384, 4, 1 << vai.arm64_iMinLine_lg2_szB };
+       *D1c = (cache_t) {  16384, 4, 1 << vai.arm64_dMinLine_lg2_szB };
+       *LLc = (cache_t) { 262144, 8, 1 << vai.arm64_dMinLine_lg2_szB };
    }
 
 #elif defined(VGA_s390x)
