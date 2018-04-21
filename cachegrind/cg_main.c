@@ -1362,6 +1362,7 @@ IRSB* cg_instrument ( VgCallbackClosure* closure,
 
 static cache_t clo_I1_cache = UNDEFINED_CACHE;
 static cache_t clo_D1_cache = UNDEFINED_CACHE;
+static cache_t clo_L2_cache = UNDEFINED_CACHE;
 static cache_t clo_LL_cache = UNDEFINED_CACHE;
 
 /*------------------------------------------------------------*/
@@ -1410,8 +1411,9 @@ static void fprint_CC_table_and_calc_totals(void)
    // the 2nd colon makes cg_annotate's output look nicer.
    VG_(fprintf)(fp,  "desc: I1 cache:         %s\n"
                      "desc: D1 cache:         %s\n"
+                     "desc: L2 cache:         %s\n"
                      "desc: LL cache:         %s\n",
-                     I1.desc_line, D1.desc_line, LL.desc_line);
+                     I1.desc_line, D1.desc_line, L2.desc_line, LL.desc_line);
 
    // "cmd:" line
    VG_(fprintf)(fp, "cmd: %s", VG_(args_the_exename));
@@ -1420,20 +1422,14 @@ static void fprint_CC_table_and_calc_totals(void)
       VG_(fprintf)(fp, " %s", arg);
    }
    // "events:" line
-   if (clo_cache_sim && clo_branch_sim) {
-      VG_(fprintf)(fp, "\nevents: Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw "
-                                  "Bc Bcm Bi Bim\n");
+   VG_(fprintf)(fp, "\nevents: Ir");
+   if (clo_cache_sim) {
+     VG_(fprintf)(fp, " I1mr ILmr Dr D1mr D2mr DLmr Dw D1mw D2mw DLmw");
    }
-   else if (clo_cache_sim && !clo_branch_sim) {
-      VG_(fprintf)(fp, "\nevents: Ir I1mr ILmr Dr D1mr DLmr Dw D1mw DLmw "
-                                  "\n");
+   if (clo_branch_sim) {
+     VG_(fprintf)(fp, " Bc bcm Bi Bim");
    }
-   else if (!clo_cache_sim && clo_branch_sim) {
-      VG_(fprintf)(fp, "\nevents: Ir Bc Bcm Bi Bim\n");
-   }
-   else {
-      VG_(fprintf)(fp, "\nevents: Ir\n");
-   }
+   VG_(fprintf)(fp, "\n");
 
    // Traverse every lineCC
    VG_(OSetGen_ResetIter)(CC_table);
@@ -1460,41 +1456,23 @@ static void fprint_CC_table_and_calc_totals(void)
          distinct_fns++;
       }
 
-      // Print the LineCC
-      if (clo_cache_sim && clo_branch_sim) {
-         VG_(fprintf)(fp,  "%d %llu %llu %llu"
-                             " %llu %llu %llu"
-                             " %llu %llu %llu"
-                             " %llu %llu %llu %llu\n",
-                            lineCC->loc.line,
-                            lineCC->Ir.a, lineCC->Ir.m1, lineCC->Ir.mL, 
-                            lineCC->Dr.a, lineCC->Dr.m1, lineCC->Dr.mL,
-                            lineCC->Dw.a, lineCC->Dw.m1, lineCC->Dw.mL,
+      VG_(fprintf)(fp, "%d %llu",
+                        lineCC->loc.line,
+                        lineCC->Ir.a);
+      if (clo_cache_sim) {
+         VG_(fprintf)(fp,  " %llu %llu"
+                           " %llu %llu %llu %llu"
+                           " %llu %llu %llu %llu",
+                            lineCC->Ir.m1, lineCC->Ir.mL, 
+                            lineCC->Dr.a, lineCC->Dr.m1, lineCC->Dr.m2, lineCC->Dr.mL,
+                            lineCC->Dw.a, lineCC->Dw.m1, lineCC->Dw.m2, lineCC->Dw.mL);
+      }
+      if (clo_branch_sim) {
+         VG_(fprintf)(fp, " %llu %llu %llu %llu",
                             lineCC->Bc.b, lineCC->Bc.mp, 
                             lineCC->Bi.b, lineCC->Bi.mp);
       }
-      else if (clo_cache_sim && !clo_branch_sim) {
-         VG_(fprintf)(fp,  "%d %llu %llu %llu"
-                             " %llu %llu %llu"
-                             " %llu %llu %llu\n",
-                            lineCC->loc.line,
-                            lineCC->Ir.a, lineCC->Ir.m1, lineCC->Ir.mL, 
-                            lineCC->Dr.a, lineCC->Dr.m1, lineCC->Dr.mL,
-                            lineCC->Dw.a, lineCC->Dw.m1, lineCC->Dw.mL);
-      }
-      else if (!clo_cache_sim && clo_branch_sim) {
-         VG_(fprintf)(fp,  "%d %llu"
-                             " %llu %llu %llu %llu\n",
-                            lineCC->loc.line,
-                            lineCC->Ir.a, 
-                            lineCC->Bc.b, lineCC->Bc.mp, 
-                            lineCC->Bi.b, lineCC->Bi.mp);
-      }
-      else {
-         VG_(fprintf)(fp,  "%d %llu\n",
-                            lineCC->loc.line,
-                            lineCC->Ir.a);
-      }
+      VG_(fprintf)(fp, "\n");
 
       // Update summary stats
       Ir_total.a  += lineCC->Ir.a;
@@ -1522,41 +1500,23 @@ static void fprint_CC_table_and_calc_totals(void)
 
    // Summary stats must come after rest of table, since we calculate them
    // during traversal.  */
-   if (clo_cache_sim && clo_branch_sim) {
-      VG_(fprintf)(fp,  "summary:"
-                        " %llu %llu %llu"
-                        " %llu %llu %llu"
-                        " %llu %llu %llu"
-                        " %llu %llu %llu %llu\n", 
-                        Ir_total.a, Ir_total.m1, Ir_total.mL,
-                        Dr_total.a, Dr_total.m1, Dr_total.mL,
-                        Dw_total.a, Dw_total.m1, Dw_total.mL,
-                        Bc_total.b, Bc_total.mp, 
-                        Bi_total.b, Bi_total.mp);
-   }
-   else if (clo_cache_sim && !clo_branch_sim) {
-      VG_(fprintf)(fp,  "summary:"
-                        " %llu %llu %llu"
-                        " %llu %llu %llu"
-                        " %llu %llu %llu\n",
-                        Ir_total.a, Ir_total.m1, Ir_total.mL,
-                        Dr_total.a, Dr_total.m1, Dr_total.mL,
-                        Dw_total.a, Dw_total.m1, Dw_total.mL);
-   }
-   else if (!clo_cache_sim && clo_branch_sim) {
-      VG_(fprintf)(fp,  "summary:"
-                        " %llu"
-                        " %llu %llu %llu %llu\n", 
-                        Ir_total.a,
-                        Bc_total.b, Bc_total.mp, 
-                        Bi_total.b, Bi_total.mp);
-   }
-   else {
-      VG_(fprintf)(fp, "summary:"
-                        " %llu\n", 
-                        Ir_total.a);
-   }
 
+   VG_(fprintf)(fp, "summary: %llu",
+                     Ir_total.a);
+   if (clo_cache_sim) {
+       VG_(fprintf)(fp,  " %llu %llu"
+                         " %llu %llu %llu %llu"
+                         " %llu %llu %llu %llu",
+                         Ir_total.m1, Ir_total.mL,
+                         Dr_total.a, Dr_total.m1, Dr_total.m2, Dr_total.mL,
+                         Dw_total.a, Dw_total.m1, Dw_total.m2, Dw_total.mL);
+   }
+   if (clo_branch_sim) {
+       VG_(fprintf)(fp, " %llu %llu %llu %llu", 
+                         Bc_total.b, Bc_total.mp, 
+                         Bi_total.b, Bi_total.mp);
+   }
+   VG_(fprintf)(fp, "\n");
    VG_(fclose)(fp);
 }
 
@@ -1786,6 +1746,7 @@ static Bool cg_process_cmd_line_option(const HChar* arg)
    if (VG_(str_clo_cache_opt)(arg,
                               &clo_I1_cache,
                               &clo_D1_cache,
+                              &clo_L2_cache,
                               &clo_LL_cache)) {}
 
    else if VG_STR_CLO( arg, "--cachegrind-out-file", clo_cachegrind_out_file) {}
@@ -1867,6 +1828,7 @@ static void cg_post_clo_init(void)
    VG_(post_clo_init_configure_caches)(&I1c, &D1c, &L2c, &LLc,
                                        &clo_I1_cache,
                                        &clo_D1_cache,
+                                       &clo_L2_cache,
                                        &clo_LL_cache);
 
    // min_line_size is used to make sure that we never feed

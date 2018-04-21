@@ -50,6 +50,7 @@ typedef struct {
 Bool VG_(str_clo_cache_opt)(const HChar *arg,
                             cache_t* clo_I1c,
                             cache_t* clo_D1c,
+                            cache_t* clo_L2c,
                             cache_t* clo_LLc);
 
 // Checks the correctness of the auto-detected caches.
@@ -64,6 +65,7 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
                                          cache_t* LLc,
                                          cache_t* clo_I1c,
                                          cache_t* clo_D1c,
+                                         cache_t* clo_L2c,
                                          cache_t* clo_LLc);
 
 void VG_(print_cache_clo_opts)(void);

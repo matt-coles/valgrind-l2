@@ -116,6 +116,7 @@ static void parse_cache_opt ( cache_t* cache, const HChar* opt,
 Bool VG_(str_clo_cache_opt)(const HChar *arg,
                             cache_t* clo_I1c,
                             cache_t* clo_D1c,
+                            cache_t* clo_L2c,
                             cache_t* clo_LLc)
 {
    const HChar* tmp_str;
@@ -126,8 +127,10 @@ Bool VG_(str_clo_cache_opt)(const HChar *arg,
    } else if VG_STR_CLO(arg, "--D1", tmp_str) {
       parse_cache_opt(clo_D1c, arg, tmp_str);
       return True;
-   } else if (VG_STR_CLO(arg, "--L2", tmp_str) || // for backwards compatibility
-              VG_STR_CLO(arg, "--LL", tmp_str)) {
+   } else if (VG_STR_CLO(arg, "--L2", tmp_str)) {
+      parse_cache_opt(clo_L2c, arg, tmp_str);
+      return True;
+   } else if (VG_STR_CLO(arg, "--LL", tmp_str)) {
       parse_cache_opt(clo_LLc, arg, tmp_str);
       return True;
    } else
@@ -276,6 +279,7 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
                                          cache_t* LLc,
                                          cache_t* clo_I1c,
                                          cache_t* clo_D1c,
+                                         cache_t* clo_L2c,
                                          cache_t* clo_LLc)
 {
 #define DEFINED(L)   (-1 != L->size  || -1 != L->assoc || -1 != L->line_size)
@@ -284,6 +288,7 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
    Bool all_caches_clo_defined =
       (DEFINED(clo_I1c) &&
        DEFINED(clo_D1c) &&
+       DEFINED(clo_L2c) &&
        DEFINED(clo_LLc));
 
    // Set the cache config (using auto-detection, if supported by the
@@ -297,12 +302,14 @@ void VG_(post_clo_init_configure_caches)(cache_t* I1c,
    // with command line.
    check_cache_or_override ("I1", I1c, DEFINED(clo_I1c));
    check_cache_or_override ("D1", D1c, DEFINED(clo_D1c));
+   check_cache_or_override ("L2", L2c, DEFINED(clo_L2c));
    check_cache_or_override ("LL", LLc, DEFINED(clo_LLc));
 
    // Then replace with any defined on the command line.  (Already checked in
    // VG(parse_clo_cache_opt)().)
    if (DEFINED(clo_I1c)) { *I1c = *clo_I1c; }
    if (DEFINED(clo_D1c)) { *D1c = *clo_D1c; }
+   if (DEFINED(clo_L2c)) { *L2c = *clo_L2c; }
    if (DEFINED(clo_LLc)) { *LLc = *clo_LLc; }
 
    if (VG_(clo_verbosity) >= 2) {
@@ -320,6 +327,7 @@ void VG_(print_cache_clo_opts)()
    VG_(printf)(
 "    --I1=<size>,<assoc>,<line_size>  set I1 cache manually\n"
 "    --D1=<size>,<assoc>,<line_size>  set D1 cache manually\n"
+"    --L2=<size>,<assoc>,<line_size>  set L2 cache manually\n"
 "    --LL=<size>,<assoc>,<line_size>  set LL cache manually\n"
                );
 }
@@ -362,6 +370,10 @@ configure_caches(cache_t *I1c, cache_t *D1c, cache_t *L2c, cache_t *LLc,
 
    if (ci->num_caches > 0 && l2 == NULL) {
       VG_(dmsg)("warning: L2 cache not installed, ignore L2 results.\n");
+   }
+
+   if (ci->num_caches > 1 && ll == NULL) {
+      VG_(dmsg)("warning: L3 cache not installed, ignore LL results.\n");
    }
 
    if (ll && ci->num_levels > 2) {
